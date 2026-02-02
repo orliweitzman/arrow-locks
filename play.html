@@ -1,128 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Arrow Lock – Play</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <title>Arrow Lock – Play</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #6f7bd9, #7a5fd2);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0;
-    color: #333;
-  }
-  .card {
-    background: white;
-    padding: 24px;
-    border-radius: 16px;
-    width: 360px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25);
-    text-align: center;
-  }
-  h2 { margin: 0 0 8px; }
-  .sub { margin: 0 0 16px; color: #666; font-size: 14px; }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin: 18px 0;
-  }
-  .btn {
-    font-size: 22px;
-    padding: 14px 0;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    background: #f1f3f5;
-  }
-  .btn:active { transform: scale(0.98); }
-  .msg {
-    margin-top: 12px;
-    font-weight: bold;
-    min-height: 24px;
-  }
-  .ok { color: #2f9e44; }
-  .bad { color: #e03131; }
-  .info { color: #1c7ed6; }
-</style>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#6f7bd9,#7a5fd2);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #333;
+    }
+    .card {
+      background: white;
+      padding: 26px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    h1 { margin: 0 0 6px; font-size: 26px; }
+    .sub { margin: 0 0 18px; color: #666; font-size: 14px; }
+
+    .sequence {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 14px 0 18px;
+      font-size: 28px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .arrow-btn {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: 14px;
+      font-size: 34px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      box-shadow: 0 6px 18px rgba(102,126,234,0.35);
+      transition: transform 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .arrow-btn:active { transform: scale(0.98); }
+    .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.12s ease;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn-reset { background: #ff6b6b; color: #fff; }
+
+    .feedback {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      display: none;
+    }
+    .ok { background: #d3f9d8; color: #2b8a3e; display: block; }
+    .bad { background: #ffe0e0; color: #c92a2a; display: block; }
+    .info { background: #e7f5ff; color: #1971c2; display: block; }
+  </style>
 </head>
 
 <body>
-<div class="card">
-  <h2 id="title">Arrow Lock</h2>
-  <p class="sub">Enter the 3-arrow code</p>
+  <div class="card">
+    <h1 id="title">🔐 Arrow Lock</h1>
+    <div class="sub">Enter the correct 3-arrow sequence</div>
 
-  <div class="grid">
-    <button class="btn" onclick="press('↖')">↖</button>
-    <button class="btn" onclick="press('↑')">↑</button>
-    <button class="btn" onclick="press('↗')">↗</button>
-    <button class="btn" onclick="press('←')">←</button>
-    <button class="btn" onclick="press('↓')">↓</button>
-    <button class="btn" onclick="press('→')">→</button>
-    <button class="btn" onclick="press('↙')">↙</button>
-    <button class="btn" onclick="press('↓')">↓</button>
-    <button class="btn" onclick="press('↘')">↘</button>
+    <div class="sequence" id="seq">
+      <span style="color:#999;font-size:14px;">Loading…</span>
+    </div>
+
+    <div class="grid" id="grid">
+      <button class="arrow-btn" onclick="press('↖')">↖</button>
+      <button class="arrow-btn" onclick="press('↑')">↑</button>
+      <button class="arrow-btn" onclick="press('↗')">↗</button>
+      <button class="arrow-btn" onclick="press('←')">←</button>
+      <div></div>
+      <button class="arrow-btn" onclick="press('→')">→</button>
+      <button class="arrow-btn" onclick="press('↙')">↙</button>
+      <button class="arrow-btn" onclick="press('↓')">↓</button>
+      <button class="arrow-btn" onclick="press('↘')">↘</button>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+    </div>
+
+    <div class="feedback info" id="fb">Loading lock…</div>
   </div>
 
-  <div class="msg info" id="msg">Loading lock…</div>
-</div>
-
 <script>
+  let lock = null;
+  let input = [];
+
+  const titleEl = document.getElementById("title");
+  const seqEl = document.getElementById("seq");
+  const fbEl = document.getElementById("fb");
+
   const params = new URLSearchParams(window.location.search);
   const lockId = params.get("lock");
 
-  let lockData = null;
-  let input = [];
+  function setFB(type, text) {
+    fbEl.className = "feedback " + type;
+    fbEl.textContent = text;
+  }
 
-  const msgEl = document.getElementById("msg");
-  const titleEl = document.getElementById("title");
+  function updateSeq() {
+    if (input.length === 0) {
+      seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Click arrows…</span>';
+    } else {
+      seqEl.innerHTML = input.map(a => `<span>${a}</span>`).join("");
+    }
+    document.querySelectorAll("#grid .arrow-btn").forEach(btn => {
+      btn.disabled = (lock ? input.length >= lock.code.length : true);
+    });
+  }
 
+  function resetAll() {
+    input = [];
+    updateSeq();
+    if (lock) setFB("info", "Enter the code");
+  }
+
+  function press(a) {
+    if (!lock) return;
+    if (input.length >= lock.code.length) return;
+
+    input.push(a);
+    updateSeq();
+
+    if (input.length === lock.code.length) {
+      const ok = input.every((v, i) => v === lock.code[i]);
+      if (ok) {
+        setFB("ok", lock.successMessage || "✅ Unlocked!");
+      } else {
+        setFB("bad", lock.failureMessage || "❌ Wrong code.");
+      }
+    }
+  }
+
+  // Load lock JSON from /locks/<id>.json
   if (!lockId) {
-    msgEl.className = "msg bad";
-    msgEl.textContent = "Missing ?lock= in the URL";
+    titleEl.textContent = "🔐 Arrow Lock";
+    setFB("bad", "Missing ?lock= in the URL");
+    seqEl.innerHTML = '<span style="color:#999;font-size:14px;">No lock ID</span>';
   } else {
-    // Load lock JSON from /locks/<id>.json
-    fetch(`locks/${lockId}.json`)
+    fetch(`locks/${lockId}.json`, { cache: "no-store" })
       .then(res => {
-        if (!res.ok) throw new Error("Lock not found");
+        if (!res.ok) throw new Error("not found");
         return res.json();
       })
       .then(data => {
-        lockData = data;
-        titleEl.textContent = data.name ? data.name : "Arrow Lock";
-        msgEl.className = "msg info";
-        msgEl.textContent = "Enter the code";
+        lock = data;
+        titleEl.textContent = `🔐 ${data.name || "Arrow Lock"}`;
+        setFB("info", "Enter the code");
+        resetAll();
       })
       .catch(() => {
-        msgEl.className = "msg bad";
-        msgEl.textContent = "Lock not found (missing JSON file)";
+        titleEl.textContent = "🔐 Arrow Lock";
+        setFB("bad", "Lock not found (missing JSON file in /locks)");
+        seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Lock not found</span>';
+        // disable buttons
+        document.querySelectorAll("#grid .arrow-btn").forEach(btn => btn.disabled = true);
       });
   }
 
-  function press(arrow) {
-    if (!lockData) return;
-
-    input.push(arrow);
-
-    if (input.length === lockData.code.length) {
-      const ok = JSON.stringify(input) === JSON.stringify(lockData.code);
-
-      if (ok) {
-        msgEl.className = "msg ok";
-        msgEl.textContent = lockData.message || "✅ Unlocked!";
-      } else {
-        msgEl.className = "msg bad";
-        msgEl.textContent = "❌ Wrong code";
-      }
-
-      input = [];
-    }
-  }
 </script>
 </body>
 </html>
