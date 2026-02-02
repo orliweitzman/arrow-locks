@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Arrow Lock – Play</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #6f7bd9, #7a5fd2);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    color: #333;
+  }
+  .card {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    width: 360px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    text-align: center;
+  }
+  h2 { margin: 0 0 8px; }
+  .sub { margin: 0 0 16px; color: #666; font-size: 14px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .btn {
+    font-size: 22px;
+    padding: 14px 0;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: #f1f3f5;
+  }
+  .btn:active { transform: scale(0.98); }
+  .msg {
+    margin-top: 12px;
+    font-weight: bold;
+    min-height: 24px;
+  }
+  .ok { color: #2f9e44; }
+  .bad { color: #e03131; }
+  .info { color: #1c7ed6; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2 id="title">Arrow Lock</h2>
+  <p class="sub">Enter the 3-arrow code</p>
+
+  <div class="grid">
+    <button class="btn" onclick="press('↖')">↖</button>
+    <button class="btn" onclick="press('↑')">↑</button>
+    <button class="btn" onclick="press('↗')">↗</button>
+    <button class="btn" onclick="press('←')">←</button>
+    <button class="btn" onclick="press('↓')">↓</button>
+    <button class="btn" onclick="press('→')">→</button>
+    <button class="btn" onclick="press('↙')">↙</button>
+    <button class="btn" onclick="press('↓')">↓</button>
+    <button class="btn" onclick="press('↘')">↘</button>
+  </div>
+
+  <div class="msg info" id="msg">Loading lock…</div>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const lockId = params.get("lock");
+
+  let lockData = null;
+  let input = [];
+
+  const msgEl = document.getElementById("msg");
+  const titleEl = document.getElementById("title");
+
+  if (!lockId) {
+    msgEl.className = "msg bad";
+    msgEl.textContent = "Missing ?lock= in the URL";
+  } else {
+    // Load lock JSON from /locks/<id>.json
+    fetch(`locks/${lockId}.json`)
+      .then(res => {
+        if (!res.ok) throw new Error("Lock not found");
+        return res.json();
+      })
+      .then(data => {
+        lockData = data;
+        titleEl.textContent = data.name ? data.name : "Arrow Lock";
+        msgEl.className = "msg info";
+        msgEl.textContent = "Enter the code";
+      })
+      .catch(() => {
+        msgEl.className = "msg bad";
+        msgEl.textContent = "Lock not found (missing JSON file)";
+      });
+  }
+
+  function press(arrow) {
+    if (!lockData) return;
+
+    input.push(arrow);
+
+    if (input.length === lockData.code.length) {
+      const ok = JSON.stringify(input) === JSON.stringify(lockData.code);
+
+      if (ok) {
+        msgEl.className = "msg ok";
+        msgEl.textContent = lockData.message || "✅ Unlocked!";
+      } else {
+        msgEl.className = "msg bad";
+        msgEl.textContent = "❌ Wrong code";
+      }
+
+      input = [];
+    }
+  }
+</script>
+</body>
+</html>
