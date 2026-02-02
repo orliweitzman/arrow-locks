@@ -22,7 +22,7 @@
       border-radius: 16px;
       padding: 26px;
       width: 100%;
-      max-width: 640px;
+      max-width: 720px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.25);
     }
     h1 { margin: 0 0 6px; text-align: center; }
@@ -105,6 +105,7 @@
     .btn:active { transform: scale(0.99); }
     .btn-clear { background: #ff6b6b; color: #fff; }
     .btn-create { background: #51cf66; color: #fff; }
+
     .note { color: #666; font-size: 12px; margin-top: 10px; }
 
     .output {
@@ -141,12 +142,47 @@
       font-size: 12px;
     }
     .small { font-size: 12px; color: #666; margin-top: 6px; }
+    .qrwrap {
+      margin-top: 12px;
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    .qrwrap img {
+      max-width: 280px;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+    .qr-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-small {
+      padding: 10px 12px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      background: #667eea;
+      color: #fff;
+      text-decoration: none;
+      display: inline-block;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>🔧 Lock Creator</h1>
-    <div class="sub">Click 3 arrows to set the code, then generate JSON + the Player link.</div>
+    <div class="sub">Click 3 arrows to set the code. Then copy JSON to <code>locks/&lt;ID&gt;.json</code>. QR opens the Player page.</div>
 
     <div class="sequence" id="seq">
       <span style="color:#999;font-size:14px;">Click 3 arrows below…</span>
@@ -170,7 +206,7 @@
         <input id="name" placeholder="e.g. Puzzle 1" />
       </div>
       <div>
-        <label>Length</label>
+        <label>Code length</label>
         <input value="3 arrows" disabled />
       </div>
     </div>
@@ -192,8 +228,7 @@
     </div>
 
     <div class="note">
-      After you click <b>Create Lock</b>, you’ll copy the JSON into a file named:
-      <code>locks/&lt;LOCK_ID&gt;.json</code> in your GitHub repo.
+      After you click <b>Create Lock</b>, you must create a JSON file in GitHub with the exact name shown below, inside the <code>locks/</code> folder.
     </div>
 
     <div class="output" id="output">
@@ -201,91 +236,118 @@
       <pre id="jsonOut"></pre>
 
       <div style="margin-top:12px;"><b>Step 2 — Player link (click to copy):</b></div>
-      <div class="linkbox" id="playerLink" onclick="copyLink()"></div>
+      <div class="linkbox" id="playerLink" onclick="copyText('player')"></div>
       <div class="small" id="copyStatus"></div>
+
+      <div style="margin-top:12px;"><b>Step 3 — QR code:</b></div>
+      <div class="qrwrap">
+        <img id="qrImg" alt="QR code will appear here" />
+        <div class="qr-actions">
+          <a class="btn-small" id="qrDownload" href="#" download>Download QR</a>
+          <button class="btn-small" onclick="copyText('json')">Copy JSON</button>
+        </div>
+        <div class="small">Tip: print the QR and stick it on the physical puzzle.</div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const selected = [];
-    const seqEl = document.getElementById("seq");
-    const outputEl = document.getElementById("output");
-    const fileNameEl = document.getElementById("fileName");
-    const jsonOutEl = document.getElementById("jsonOut");
-    const playerLinkEl = document.getElementById("playerLink");
-    const copyStatusEl = document.getElementById("copyStatus");
+<script>
+  const selected = [];
+  const seqEl = document.getElementById("seq");
 
-    function updateSeq() {
-      if (selected.length === 0) {
-        seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Click 3 arrows below…</span>';
-      } else {
-        seqEl.innerHTML = selected.map(a => `<span>${a}</span>`).join("");
-      }
-      // disable after 3
-      document.querySelectorAll("#grid .arrow-btn").forEach(btn => {
-        btn.disabled = (selected.length >= 3);
-      });
+  const outputEl = document.getElementById("output");
+  const fileNameEl = document.getElementById("fileName");
+  const jsonOutEl = document.getElementById("jsonOut");
+  const playerLinkEl = document.getElementById("playerLink");
+  const copyStatusEl = document.getElementById("copyStatus");
+  const qrImgEl = document.getElementById("qrImg");
+  const qrDownloadEl = document.getElementById("qrDownload");
+
+  function updateSeq() {
+    if (selected.length === 0) {
+      seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Click 3 arrows below…</span>';
+    } else {
+      seqEl.innerHTML = selected.map(a => `<span>${a}</span>`).join("");
     }
+    document.querySelectorAll("#grid .arrow-btn").forEach(btn => {
+      btn.disabled = (selected.length >= 3);
+    });
+  }
 
-    function pick(a) {
-      if (selected.length >= 3) return;
-      selected.push(a);
-      updateSeq();
-    }
-
-    function clearAll() {
-      selected.length = 0;
-      document.getElementById("name").value = "";
-      document.getElementById("successMsg").value = "";
-      document.getElementById("failMsg").value = "";
-      copyStatusEl.textContent = "";
-      outputEl.style.display = "none";
-      updateSeq();
-    }
-
-    function createLock() {
-      if (selected.length !== 3) {
-        alert("Please pick exactly 3 arrows.");
-        return;
-      }
-
-      const lockId = String(Date.now());
-      const name = document.getElementById("name").value.trim();
-      const successMessage = document.getElementById("successMsg").value.trim();
-      const failureMessage = document.getElementById("failMsg").value.trim();
-
-      const lockData = {
-        id: lockId,
-        name: name || "Arrow Lock",
-        code: [...selected],
-        successMessage: successMessage || "✅ Unlocked!",
-        failureMessage: failureMessage || "❌ Wrong code."
-      };
-
-      const json = JSON.stringify(lockData, null, 2);
-
-      // IMPORTANT: use absolute published URL so QR works anywhere
-      const playerUrl = `https://${location.host}${location.pathname.replace(/index\.html$/,'')}`.replace(/\/$/, '') + `/play.html?lock=${lockId}`;
-
-      fileNameEl.textContent = `locks/${lockId}.json`;
-      jsonOutEl.textContent = json;
-      playerLinkEl.textContent = playerUrl;
-      outputEl.style.display = "block";
-      copyStatusEl.textContent = "";
-    }
-
-    function copyLink() {
-      const text = playerLinkEl.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        copyStatusEl.textContent = "Copied!";
-        setTimeout(() => (copyStatusEl.textContent = ""), 1500);
-      }).catch(() => {
-        copyStatusEl.textContent = "Could not copy automatically. Select and copy manually.";
-      });
-    }
-
-    // init
+  function pick(a) {
+    if (selected.length >= 3) return;
+    selected.push(a);
     updateSeq();
-  </script>
+  }
+
+  function clearAll() {
+    selected.length = 0;
+    document.getElementById("name").value = "";
+    document.getElementById("successMsg").value = "";
+    document.getElementById("failMsg").value = "";
+    copyStatusEl.textContent = "";
+    outputEl.style.display = "none";
+    updateSeq();
+  }
+
+  function buildAbsolutePlayerUrl(lockId) {
+    // Ensures it works even if GitHub serves /arrow-locks/ without index.html
+    const base = `${window.location.origin}${window.location.pathname}`.replace(/index\.html$/,'');
+    const normalizedBase = base.endsWith('/') ? base : base + '/';
+    return `${normalizedBase}play.html?lock=${lockId}`;
+  }
+
+  function createLock() {
+    if (selected.length !== 3) {
+      alert("Please pick exactly 3 arrows.");
+      return;
+    }
+
+    const lockId = String(Date.now());
+    const name = document.getElementById("name").value.trim();
+    const successMessage = document.getElementById("successMsg").value.trim();
+    const failureMessage = document.getElementById("failMsg").value.trim();
+
+    const lockData = {
+      id: lockId,
+      name: name || "Arrow Lock",
+      code: [...selected],
+      successMessage: successMessage || "✅ Unlocked!",
+      failureMessage: failureMessage || "❌ Wrong code."
+    };
+
+    const json = JSON.stringify(lockData, null, 2);
+    const playerUrl = buildAbsolutePlayerUrl(lockId);
+
+    // QR image URL (free service)
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(playerUrl)}`;
+
+    fileNameEl.textContent = `locks/${lockId}.json`;
+    jsonOutEl.textContent = json;
+    playerLinkEl.textContent = playerUrl;
+
+    qrImgEl.src = qrUrl;
+    qrDownloadEl.href = qrUrl;
+    qrDownloadEl.setAttribute("download", `lock-${lockId}-qr.png`);
+
+    outputEl.style.display = "block";
+    copyStatusEl.textContent = "";
+  }
+
+  function copyText(which) {
+    let text = "";
+    if (which === "player") text = playerLinkEl.textContent;
+    if (which === "json") text = jsonOutEl.textContent;
+
+    navigator.clipboard.writeText(text).then(() => {
+      copyStatusEl.textContent = (which === "json") ? "JSON copied!" : "Link copied!";
+      setTimeout(() => (copyStatusEl.textContent = ""), 1500);
+    }).catch(() => {
+      copyStatusEl.textContent = "Could not copy automatically. Select and copy manually.";
+    });
+  }
+
+  updateSeq();
+</script>
 </body>
 </html>
