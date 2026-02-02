@@ -23,32 +23,40 @@
       padding: 26px;
       border-radius: 16px;
       width: 100%;
-      max-width: 520px;
+      max-width: 560px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.25);
       text-align: center;
+      position: relative;
+      overflow: hidden;
     }
     h1 { margin: 0 0 6px; font-size: 26px; }
-    .sub { margin: 0 0 18px; color: #666; font-size: 14px; }
+    .sub { margin: 0 0 12px; color: #666; font-size: 14px; }
 
     .sequence {
       background: #f5f5f5;
       border-radius: 10px;
-      padding: 14px;
+      padding: 12px;
       min-height: 54px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin: 14px 0 18px;
+      margin: 12px 0 10px;
       font-size: 28px;
+    }
+
+    .progress {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 12px;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
     .arrow-btn {
       aspect-ratio: 1;
@@ -63,6 +71,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      user-select: none;
     }
     .arrow-btn:active { transform: scale(0.98); }
     .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -91,21 +100,80 @@
       border-radius: 10px;
       font-weight: bold;
       display: none;
+      line-height: 1.25;
     }
     .ok { background: #d3f9d8; color: #2b8a3e; display: block; }
     .bad { background: #ffe0e0; color: #c92a2a; display: block; }
     .info { background: #e7f5ff; color: #1971c2; display: block; }
+
+    /* Success media area */
+    .success-media {
+      margin-top: 14px;
+      display: none;
+      text-align: center;
+    }
+    .success-media img {
+      max-width: 100%;
+      border-radius: 12px;
+      border: 1px solid #eee;
+      margin-top: 10px;
+    }
+    .video-wrap {
+      margin-top: 12px;
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%; /* 16:9 */
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #eee;
+    }
+    .video-wrap iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Shake animation for wrong code */
+    .shake {
+      animation: shake 0.45s;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-10px); }
+      40% { transform: translateX(10px); }
+      60% { transform: translateX(-8px); }
+      80% { transform: translateX(8px); }
+    }
+
+    /* Confetti */
+    .confetti {
+      position: absolute;
+      top: -10px;
+      width: 8px;
+      height: 12px;
+      opacity: 0.9;
+      border-radius: 2px;
+      animation: fall 900ms linear forwards;
+      pointer-events: none;
+    }
+    @keyframes fall {
+      to { transform: translateY(680px) rotate(360deg); opacity: 0; }
+    }
   </style>
 </head>
 
 <body>
-  <div class="card">
+  <div class="card" id="card">
     <h1 id="title">🔐 Arrow Lock</h1>
     <div class="sub">Enter the correct 3-arrow sequence</div>
 
     <div class="sequence" id="seq">
       <span style="color:#999;font-size:14px;">Loading…</span>
     </div>
+
+    <div class="progress" id="progress"></div>
 
     <div class="grid" id="grid">
       <button class="arrow-btn" onclick="press('↖')">↖</button>
@@ -124,15 +192,34 @@
     </div>
 
     <div class="feedback info" id="fb">Loading lock…</div>
+
+    <div class="success-media" id="successMedia">
+      <div id="mediaText" style="font-weight:bold; color:#333;"></div>
+      <img id="successImg" alt="" style="display:none;" />
+      <div class="video-wrap" id="ytWrap" style="display:none;">
+        <iframe id="ytFrame"
+          title="YouTube video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen></iframe>
+      </div>
+    </div>
   </div>
 
 <script>
   let lock = null;
   let input = [];
 
+  const cardEl = document.getElementById("card");
   const titleEl = document.getElementById("title");
   const seqEl = document.getElementById("seq");
   const fbEl = document.getElementById("fb");
+  const progressEl = document.getElementById("progress");
+
+  const successMediaEl = document.getElementById("successMedia");
+  const mediaTextEl = document.getElementById("mediaText");
+  const successImgEl = document.getElementById("successImg");
+  const ytWrapEl = document.getElementById("ytWrap");
+  const ytFrameEl = document.getElementById("ytFrame");
 
   const params = new URLSearchParams(window.location.search);
   const lockId = params.get("lock");
@@ -142,21 +229,103 @@
     fbEl.textContent = text;
   }
 
+  function setProgress() {
+    if (!lock) { progressEl.textContent = ""; return; }
+    progressEl.textContent = `${input.length}/${lock.code.length}`;
+  }
+
   function updateSeq() {
     if (input.length === 0) {
       seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Click arrows…</span>';
     } else {
       seqEl.innerHTML = input.map(a => `<span>${a}</span>`).join("");
     }
+
     document.querySelectorAll("#grid .arrow-btn").forEach(btn => {
-      btn.disabled = (lock ? input.length >= lock.code.length : true);
+      btn.disabled = (!lock) || (input.length >= lock.code.length);
     });
+
+    setProgress();
   }
 
   function resetAll() {
     input = [];
+    successMediaEl.style.display = "none";
+    successImgEl.style.display = "none";
+    successImgEl.src = "";
+    ytWrapEl.style.display = "none";
+    ytFrameEl.src = "";
     updateSeq();
     if (lock) setFB("info", "Enter the code");
+  }
+
+  function shakeCard() {
+    cardEl.classList.remove("shake");
+    void cardEl.offsetWidth; // reflow
+    cardEl.classList.add("shake");
+  }
+
+  function confettiBurst() {
+    // lightweight confetti: 26 pieces
+    const colors = ["#ff6b6b","#ffd43b","#51cf66","#4dabf7","#845ef7","#ff922b"];
+    for (let i = 0; i < 26; i++) {
+      const d = document.createElement("div");
+      d.className = "confetti";
+      d.style.left = Math.random() * 100 + "%";
+      d.style.background = colors[Math.floor(Math.random() * colors.length)];
+      d.style.animationDelay = (Math.random() * 180) + "ms";
+      d.style.transform = `rotate(${Math.random()*360}deg)`;
+      cardEl.appendChild(d);
+      setTimeout(() => d.remove(), 1100);
+    }
+  }
+
+  function extractYouTubeId(url) {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      // youtu.be/<id>
+      if (u.hostname.includes("youtu.be")) {
+        const id = u.pathname.replace("/", "").trim();
+        return id || null;
+      }
+      // youtube.com/watch?v=<id>
+      if (u.hostname.includes("youtube.com")) {
+        const v = u.searchParams.get("v");
+        if (v) return v;
+        // youtube.com/embed/<id>
+        const parts = u.pathname.split("/").filter(Boolean);
+        const embedIndex = parts.indexOf("embed");
+        if (embedIndex !== -1 && parts[embedIndex + 1]) return parts[embedIndex + 1];
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function showSuccessMedia() {
+    // Optional: successImage, successYouTube
+    const hasImage = !!lock.successImage;
+    const ytId = extractYouTubeId(lock.successYouTube);
+
+    if (!hasImage && !ytId) return;
+
+    successMediaEl.style.display = "block";
+    mediaTextEl.textContent = "Unlocked content:";
+
+    if (hasImage) {
+      successImgEl.src = lock.successImage;
+      successImgEl.style.display = "block";
+      successImgEl.onerror = () => {
+        successImgEl.style.display = "none";
+      };
+    }
+
+    if (ytId) {
+      ytWrapEl.style.display = "block";
+      ytFrameEl.src = `https://www.youtube.com/embed/${ytId}?rel=0`;
+    }
   }
 
   function press(a) {
@@ -170,8 +339,11 @@
       const ok = input.every((v, i) => v === lock.code[i]);
       if (ok) {
         setFB("ok", lock.successMessage || "✅ Unlocked!");
+        confettiBurst();
+        showSuccessMedia();
       } else {
         setFB("bad", lock.failureMessage || "❌ Wrong code.");
+        shakeCard();
       }
     }
   }
@@ -181,7 +353,10 @@
     titleEl.textContent = "🔐 Arrow Lock";
     setFB("bad", "Missing ?lock= in the URL");
     seqEl.innerHTML = '<span style="color:#999;font-size:14px;">No lock ID</span>';
+    document.querySelectorAll("#grid .arrow-btn").forEach(btn => btn.disabled = true);
+    progressEl.textContent = "";
   } else {
+    setFB("info", "Loading lock…");
     fetch(`locks/${lockId}.json`, { cache: "no-store" })
       .then(res => {
         if (!res.ok) throw new Error("not found");
@@ -197,8 +372,8 @@
         titleEl.textContent = "🔐 Arrow Lock";
         setFB("bad", "Lock not found (missing JSON file in /locks)");
         seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Lock not found</span>';
-        // disable buttons
         document.querySelectorAll("#grid .arrow-btn").forEach(btn => btn.disabled = true);
+        progressEl.textContent = "";
       });
   }
 
