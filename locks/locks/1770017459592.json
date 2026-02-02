@@ -1,11 +1,8 @@
 {
-  "id": "1770017459592",
-  "name": "Israel museum",
-  "code": [
-    "↖",
-    "↑",
-    "↗"
-  ],
-  "successMessage": "fdsfsafs",
-  "failureMessage": "mo"
+  "name": "Birthday Surprise",
+  "code": ["↖", "↑", "↗"],
+  "successMessage": "🎉 Happy Birthday!",
+  "failureMessage": "❌ Try again",
+  "successImage": "https://YOUR-IMAGE-URL",
+  "successYouTube": "https://www.youtube.com/watch?v=VIDEO_ID"
 }
