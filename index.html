@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Arrow Lock – Creator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6fb;
+  padding: 40px;
+}
+.box {
+  max-width: 500px;
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+h1 { margin-top: 0; }
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+button {
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.output {
+  margin-top: 20px;
+  background: #f1f3f5;
+  padding: 15px;
+  border-radius: 10px;
+  word-break: break-all;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+  <h1>🔧 Create Arrow Lock</h1>
+
+  <label>3-arrow code (comma separated):</label>
+  <input id="code" placeholder="↑,→,↓">
+
+  <label>Success message:</label>
+  <input id="message" placeholder="The lock is open!">
+
+  <button onclick="createLock()">Create Lock</button>
+
+  <div class="output" id="output" style="display:none"></div>
+</div>
+
+<script>
+function createLock() {
+  const code = document.getElementById("code").value.split(",");
+  const message = document.getElementById("message").value;
+  const lockId = Date.now();
+
+  const lockData = {
+    id: lockId,
+    code: code,
+    message: message
+  };
+
+  const json = JSON.stringify(lockData, null, 2);
+
+  const output = document.getElementById("output");
+  output.style.display = "block";
+  output.innerHTML = `
+    <strong>Step 1:</strong> Copy this JSON and save it as:<br>
+    <code>locks/${lockId}.json</code>
+    <pre>${json}</pre>
+
+    <strong>Step 2:</strong> Player link:<br>
+    <a target="_blank"
+       href="play.html?lock=${lockId}">
+       play.html?lock=${lockId}
+    </a>
+  `;
+}
+</script>
+</body>
+</html>
