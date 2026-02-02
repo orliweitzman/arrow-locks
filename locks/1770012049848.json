@@ -1,0 +1,11 @@
+{
+  "id": "1770012049848",
+  "name": "Getting to Israel",
+  "code": [
+    "↗",
+    "↗",
+    "↗"
+  ],
+  "successMessage": "Yeay",
+  "failureMessage": "oops"
+}
