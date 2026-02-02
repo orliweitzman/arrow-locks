@@ -1,88 +1,291 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Arrow Lock – Creator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Arrow Lock – Creator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      border-radius: 16px;
+      padding: 26px;
+      width: 100%;
+      max-width: 640px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    h1 { margin: 0 0 6px; text-align: center; }
+    .sub { margin: 0 0 18px; text-align: center; color: #666; font-size: 14px; }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6fb;
-  padding: 40px;
-}
-.box {
-  max-width: 500px;
-  background: white;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.15);
-}
-h1 { margin-top: 0; }
-input {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-button {
-  padding: 12px 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-.output {
-  margin-top: 20px;
-  background: #f1f3f5;
-  padding: 15px;
-  border-radius: 10px;
-  word-break: break-all;
-}
-</style>
+    .sequence {
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 14px;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 14px 0 18px;
+      font-size: 28px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .arrow-btn {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: 14px;
+      font-size: 34px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      box-shadow: 0 6px 18px rgba(102,126,234,0.35);
+      transition: transform 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .arrow-btn:active { transform: scale(0.98); }
+    .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #333;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid #e6e6e6;
+      font-size: 14px;
+    }
+    textarea { min-height: 70px; resize: vertical; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.12s ease;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn-clear { background: #ff6b6b; color: #fff; }
+    .btn-create { background: #51cf66; color: #fff; }
+    .note { color: #666; font-size: 12px; margin-top: 10px; }
+
+    .output {
+      margin-top: 18px;
+      background: #f1f3f5;
+      border-radius: 12px;
+      padding: 14px;
+      display: none;
+    }
+    .output code {
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      font-size: 12px;
+    }
+    pre {
+      margin: 10px 0 0;
+      background: #fff;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      overflow: auto;
+      font-size: 12px;
+    }
+    .linkbox {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 10px;
+      border: 2px solid #667eea;
+      word-break: break-all;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .small { font-size: 12px; color: #666; margin-top: 6px; }
+  </style>
 </head>
-
 <body>
-<div class="box">
-  <h1>🔧 Create Arrow Lock</h1>
+  <div class="container">
+    <h1>🔧 Lock Creator</h1>
+    <div class="sub">Click 3 arrows to set the code, then generate JSON + the Player link.</div>
 
-  <label>3-arrow code (comma separated):</label>
-  <input id="code" placeholder="↑,→,↓">
+    <div class="sequence" id="seq">
+      <span style="color:#999;font-size:14px;">Click 3 arrows below…</span>
+    </div>
 
-  <label>Success message:</label>
-  <input id="message" placeholder="The lock is open!">
+    <div class="grid" id="grid">
+      <button class="arrow-btn" onclick="pick('↖')">↖</button>
+      <button class="arrow-btn" onclick="pick('↑')">↑</button>
+      <button class="arrow-btn" onclick="pick('↗')">↗</button>
+      <button class="arrow-btn" onclick="pick('←')">←</button>
+      <div></div>
+      <button class="arrow-btn" onclick="pick('→')">→</button>
+      <button class="arrow-btn" onclick="pick('↙')">↙</button>
+      <button class="arrow-btn" onclick="pick('↓')">↓</button>
+      <button class="arrow-btn" onclick="pick('↘')">↘</button>
+    </div>
 
-  <button onclick="createLock()">Create Lock</button>
+    <div class="row">
+      <div>
+        <label>Lock name (optional)</label>
+        <input id="name" placeholder="e.g. Puzzle 1" />
+      </div>
+      <div>
+        <label>Length</label>
+        <input value="3 arrows" disabled />
+      </div>
+    </div>
 
-  <div class="output" id="output" style="display:none"></div>
-</div>
+    <div class="row">
+      <div>
+        <label>Success message</label>
+        <textarea id="successMsg" placeholder="e.g. 🎉 Great! You unlocked it!"></textarea>
+      </div>
+      <div>
+        <label>Failure message</label>
+        <textarea id="failMsg" placeholder="e.g. ❌ Wrong code, try again."></textarea>
+      </div>
+    </div>
 
-<script>
-function createLock() {
-  const code = document.getElementById("code").value.split(",");
-  const message = document.getElementById("message").value;
-  const lockId = Date.now();
+    <div class="actions">
+      <button class="btn btn-clear" onclick="clearAll()">Clear</button>
+      <button class="btn btn-create" onclick="createLock()">Create Lock</button>
+    </div>
 
-  const lockData = {
-    id: lockId,
-    code: code,
-    message: message
-  };
+    <div class="note">
+      After you click <b>Create Lock</b>, you’ll copy the JSON into a file named:
+      <code>locks/&lt;LOCK_ID&gt;.json</code> in your GitHub repo.
+    </div>
 
-  const json = JSON.stringify(lockData, null, 2);
+    <div class="output" id="output">
+      <div><b>Step 1 — Create this file in GitHub:</b> <code id="fileName"></code></div>
+      <pre id="jsonOut"></pre>
 
-  const output = document.getElementById("output");
-  output.style.display = "block";
-  output.innerHTML = `
-    <strong>Step 1:</strong> Copy this JSON and save it as:<br>
-    <code>locks/${lockId}.json</code>
-    <pre>${json}</pre>
+      <div style="margin-top:12px;"><b>Step 2 — Player link (click to copy):</b></div>
+      <div class="linkbox" id="playerLink" onclick="copyLink()"></div>
+      <div class="small" id="copyStatus"></div>
+    </div>
+  </div>
 
-    <strong>Step 2:</strong> Player link:<br>
-    <a target="_blank"
-       href="play.html?lock=${lockId}">
-       play.html?lock=${lockId}
-    </a>
-  `;
-}
-</script>
+  <script>
+    const selected = [];
+    const seqEl = document.getElementById("seq");
+    const outputEl = document.getElementById("output");
+    const fileNameEl = document.getElementById("fileName");
+    const jsonOutEl = document.getElementById("jsonOut");
+    const playerLinkEl = document.getElementById("playerLink");
+    const copyStatusEl = document.getElementById("copyStatus");
+
+    function updateSeq() {
+      if (selected.length === 0) {
+        seqEl.innerHTML = '<span style="color:#999;font-size:14px;">Click 3 arrows below…</span>';
+      } else {
+        seqEl.innerHTML = selected.map(a => `<span>${a}</span>`).join("");
+      }
+      // disable after 3
+      document.querySelectorAll("#grid .arrow-btn").forEach(btn => {
+        btn.disabled = (selected.length >= 3);
+      });
+    }
+
+    function pick(a) {
+      if (selected.length >= 3) return;
+      selected.push(a);
+      updateSeq();
+    }
+
+    function clearAll() {
+      selected.length = 0;
+      document.getElementById("name").value = "";
+      document.getElementById("successMsg").value = "";
+      document.getElementById("failMsg").value = "";
+      copyStatusEl.textContent = "";
+      outputEl.style.display = "none";
+      updateSeq();
+    }
+
+    function createLock() {
+      if (selected.length !== 3) {
+        alert("Please pick exactly 3 arrows.");
+        return;
+      }
+
+      const lockId = String(Date.now());
+      const name = document.getElementById("name").value.trim();
+      const successMessage = document.getElementById("successMsg").value.trim();
+      const failureMessage = document.getElementById("failMsg").value.trim();
+
+      const lockData = {
+        id: lockId,
+        name: name || "Arrow Lock",
+        code: [...selected],
+        successMessage: successMessage || "✅ Unlocked!",
+        failureMessage: failureMessage || "❌ Wrong code."
+      };
+
+      const json = JSON.stringify(lockData, null, 2);
+
+      // IMPORTANT: use absolute published URL so QR works anywhere
+      const playerUrl = `https://${location.host}${location.pathname.replace(/index\.html$/,'')}`.replace(/\/$/, '') + `/play.html?lock=${lockId}`;
+
+      fileNameEl.textContent = `locks/${lockId}.json`;
+      jsonOutEl.textContent = json;
+      playerLinkEl.textContent = playerUrl;
+      outputEl.style.display = "block";
+      copyStatusEl.textContent = "";
+    }
+
+    function copyLink() {
+      const text = playerLinkEl.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        copyStatusEl.textContent = "Copied!";
+        setTimeout(() => (copyStatusEl.textContent = ""), 1500);
+      }).catch(() => {
+        copyStatusEl.textContent = "Could not copy automatically. Select and copy manually.";
+      });
+    }
+
+    // init
+    updateSeq();
+  </script>
 </body>
 </html>
